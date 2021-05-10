@@ -100,7 +100,7 @@ comprueba_help:
         b error_cmd   // Si no hemos podido interpretar el comando --> devolvemos código de error
 
 
-/* INICIO DE PROCESOS DE EJECUCION------- */
+/* -------------------INICIO DE PROCESOS DE EJECUCION-------------------- */
 cmd_comprueba:          .asciz "comprueba"
                         .align
 
@@ -178,7 +178,7 @@ ej_set_int_2:
         bgt error_mem           
         ldr r8,=n_vars_int              //Cargamos el numero de variables que se han usado
         ldr r8,[r8]
-        ldr r7,=buffer_string           //Apuntamos a la posicion en la que vamos a guardar la String 
+        ldr r7,=buffer_string           //Apuntamos a la posicion en la que vamos a guardar la String
         lsl r8,#4                       //Así multiplicamos el r8 (nº variables)*16
         add r0,r7,r8                    //Al sumarlo a direccion base ya apunta a lugar de memoria
         mov r1,r5                       //Volvemos a cargar el valor de puntero de inicio en r1 porque puede haberse usado en alguna funcion 
@@ -199,6 +199,7 @@ ej_set_int_2:
         #bl printInt                     //A modo de debugger
 
         /*Aumentamos el contador de variables que hay en la memoria */
+        lsr r8,#2
         add r8,r8,#1
         #mov r0,r8                       //A modo de debugger imprimimos las variables usadas hasta el momento
         #bl printInt
@@ -240,6 +241,7 @@ bucle2:
         bl printInt
         mov r0,#'\n'
         bl write_uart
+        lsr r8,#2               //Recupero el valor de r8 original haciendo la operacion opuesta a lsl #2
         add r8,r8,#1
         cmp r8,r9
         beq f_interpr
