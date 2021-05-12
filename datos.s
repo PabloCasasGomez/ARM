@@ -57,9 +57,25 @@ buffer_int:
 buffer_string:
 .space TAM_BUFFER_VARS
 
+.global buffer_comprobador      // Buffer para comprobar nuestro valor introducido, solo guardará un string cada vez y no tenemos espacio optimizado
+buffer_comprobador:
+.space TAM_BUFFER_VARS
+
 .global buffer_comando     // Almacena el comando a ejecutar
 buffer_comando:
 .space TAM_STRING
+
+.global buffer_input         // Algunas funciones en utils.s deben tener acceso
+buffer_input:
+.space TAM_BUFFER_VARS
+
+.global buffer_tipo     // Tenemos acceso desde utils.s
+buffer_tipo:
+.space 400
+
+.global contador    // Tenemos acceso desde utils.s
+contador:
+.word 0           
 
 .global n_vars_int
 n_vars_int:

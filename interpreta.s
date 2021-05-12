@@ -89,62 +89,10 @@ comprueba_help:
         cmp r0,#1
         beq ej_pause
 
-        /* Comprobamos si es "comprobar" */
-        mov r0,r4
-        ldr r1,=cmd_comprueba
-        bl starts_with
-        cmp r0,#1
-        beq comprobar
-
-
         b error_cmd   // Si no hemos podido interpretar el comando --> devolvemos código de error
 
 
 /* -------------------INICIO DE PROCESOS DE EJECUCION-------------------- */
-cmd_comprueba:          .asciz "comprueba"
-                        .align
-
-message_comprueba:      .asciz "Estamos viendo si se ha comprobado\n"
-                        .align
-
-comprobar:
-        ldr r9,=n_vars_int
-        ldr r9,[r9]
-        mov r0,r9
-        bl printInt
-
-        mov r8,#0
-        cmp r8,r9
-        beq ej_set_int_2
-
-        ldr r0,=message_comprueba
-        bl printString
-        ldr r1,=buffer_string
-
-comprobar2:
-        mov r0,#'K'
-        bl write_uart
-        mov r0,r4
-        bl strcmp
-        cmp r0,#0
-        beq duplicado
-        add r8,r8,#1
-        cmp r8,r9
-        beq ej_set_int_2
-        mov r7,r8
-        lsl r7,#4
-        add r1,r7,r1
-        b comprobar2
-
-existe:         .asciz "El registros ya existe\n"
-                .align
-duplicado:
-        ldr r0,=existe
-        bl printString
-
-        b f_interpr
-
-
 ej_help:
         ldr r0, =mensaje_ayuda
         bl printString
@@ -165,48 +113,93 @@ ej_set_r:
 
         b f_interpr
 
+
+/*----------------------------------------------------------------------------------------------------------------------------------------------- */
 ej_set_int:
-        bl comprobar
+					/*Mismo proceso que el original */
+					add r5,r4,#5
+					mov r0,#'='                     //Busco en la cadena la posicion de "=" que indica que acabo el nombre de la variable
+        			        mov r1,r5                       //R1 es el puntero que paso a la funcion find
+        			        bl find
+					mov r9,r0                       //Me devuelve en r0 el valor de la posicion donde esta el "="
+					bl printInt                     //Debugger
+                                        cmp r9,#11                      //Si el valor de = es mayor de 11 imprimos un error por pasarse del límite de memoria
+					bgt error_mem           
+					ldr r0,=buffer_comprobador    	//Apuntamos a la posicion en la que vamos a guardar la String
+					mov r1,r5                       //Volvemos a cargar el valor de puntero de inicio en r1 porque puede haberse usado en alguna funcion 
+					mov r2,r9                       //Cargamos la posicion donde hemos encontrado el "=" en el r2
+					bl strncpy                      //Usamos la funcion de C que nos han aportado para copiar la String en la zona de memoria que queremos
 
-ej_set_int_2:        
-        add r5,r4,#5                    //R5 me apunta ya al inicio del nombre
-        mov r0,#'='                     //Busco en la cadena la posicion de "=" que indica que acabo el nombre de la variable
-        mov r1,r5                       //R1 es el puntero que paso a la funcion find
-        bl find
-        mov r9,r0                       //Me devuelve en r0 el valor de la posicion donde esta el "="
-        cmp r9,#11                      //Si el valor de = es mayor de 11 imprimos un error por pasarse del límite de memoria
-        bgt error_mem           
-        ldr r8,=n_vars_int              //Cargamos el numero de variables que se han usado
-        ldr r8,[r8]
-        ldr r7,=buffer_string           //Apuntamos a la posicion en la que vamos a guardar la String
-        lsl r8,#4                       //Así multiplicamos el r8 (nº variables)*16
-        add r0,r7,r8                    //Al sumarlo a direccion base ya apunta a lugar de memoria
-        mov r1,r5                       //Volvemos a cargar el valor de puntero de inicio en r1 porque puede haberse usado en alguna funcion 
-        mov r2,r9                       //Cargamos la posicion donde hemos encontrado el "=" en el r2
-        bl strncpy                      //Usamos la funcion de C que nos han aportado para copiar la String en la zona de memoria que queremos
- 
-        /*Empezamos con el guardado del valor en cuestion */
-        #mov r0,#'J'                     //A modo de debugger
-        #bl write_uart
-        ldr r7,=buffer_int
-        add r9,#1                       //Sumamos 1 al puntero porque la cuenta se inicia en 0 en lugar de 1
-        add r0,r5,r9
-        bl atoi
-        ldr r8,=n_vars_int              //Cargamos el numero de variables que se han usado
-        ldr r8,[r8]
-        lsl r8,#2
-        str r0,[r7,+r8]
-        #bl printInt                     //A modo de debugger
+                                        ldr r0,=buffer_comprobador      //Debugger
+                                        bl printString                  //Debugger
 
-        /*Aumentamos el contador de variables que hay en la memoria */
-        lsr r8,#2
-        add r8,r8,#1
-        #mov r0,r8                       //A modo de debugger imprimimos las variables usadas hasta el momento
-        #bl printInt
-        ldr r9,=n_vars_int              //Cargamos el puntero al numero de variables que tenemos
-        str r8,[r9]                     //Aumentamos en 1 el numero de variables
+					ldr r7,=n_vars_int
+					ldr r7,[r7]
+                                        mov r0,r7
+                                        bl printInt                     //Debugger
+					mov r8,#0
 
-        b f_interpr
+bucle:				
+                                        cmp r7,r8
+                                        beq f_comprobacion
+					ldr r0,=buffer_string
+					ldr r1,=buffer_comprobador
+                                        lsl r8,#4
+					add r0,r0,r8
+                                        lsr r8,#4 
+					bl strcmp
+					cmp r0,#0
+					beq modifica_reg
+					add r8,#1
+					cmp r8,r7
+					beq f_comprobacion
+					b bucle
+
+modifica_reg:
+                                        add r9,#1
+					add r0,r5,r9					//R5 esta apuntando a justo despues de % y le sumamos r9 que indica donde acaba el = y empieza el num
+					bl atoi
+
+					ldr r1,=buffer_int				//Cargamos el buffer de datos
+					str r0,[r1,r8, lsl #2]			        //Guardamos el valor obtenido de b atoi en la direccion de memoria que tenemos de r1.
+					b f_interpr
+
+
+
+
+mess_compro_completa:		.asciz "Comprobacion completa, la variable no esta descrita y se va a guardar la nueva variable\n"
+			        .align
+f_comprobacion:
+					ldr r0,=mess_compro_completa
+					bl printString
+					ldr r0,=buffer_string
+					ldr r1,=n_vars_int
+					ldr r1,[r1]
+					lsl r1,#4//Así multiplicamos el r1 (nº variables)*16
+					add r0,r1
+					mov r1,r5//Cargamos el puntero de la frase a partir de %
+					mov r2,r9//Cargamos la posicion donde hemos encontrado el "=" en el r2
+					bl strncpy//Usamos la funcion de C que nos han aportado para copiar la String en la zona de memoria que queremos
+
+                                        add r9,#1                       //Sumamos 1 al puntero porque la cuenta se inicia en 0 en lugar de 1
+                                        add r0,r5,r9
+                                        bl atoi
+
+					ldr r1,=buffer_int				//Cargamos el buffer de datos
+					str r0,[r1,r8, lsl #2]			        //Guardamos el valor obtenido de b atoi en la direccion de memoria que tenemos de r1.
+
+					ldr r0,=n_vars_int
+                                        ldr r0,[r0]
+					add r0,r0,#1
+					ldr r1,=n_vars_int              //Cargamos el puntero al numero de variables que tenemos
+					str r0,[r1]                     //Aumentamos en 1 el numero de variables
+
+                                        ldr r0,=n_vars_int
+                                        ldr r0,[r0]
+                                        bl printInt
+
+					b f_interpr
+/*------------------------------------------------------------------------------------------------------------------------------------------------------------ */
 
 message_list_int:       .asciz "Lista de variables de entorno\n"
                         .align
@@ -224,6 +217,7 @@ ej_list_int:
 bucle_lista_VIR:
         lsl r8,#4
         add r5,r7,r8
+        lsr r8,#4               //Dividimos y volvemos al valor original de r8
         #mov r0,r8
         #bl printInt             //Debugger para ver como se incrementa el valor de r8
         mov r0,r5
@@ -231,7 +225,6 @@ bucle_lista_VIR:
 
 /* Parte donde leemos e imprimos el valor numerico guardado en el buffer */
 bucle2:
-        lsr r8,#4               //Dividimos y volvemos al valor original de r8
         ldr r0,=mensaje_puntos_espacio
         bl printString
         ldr r6,=buffer_int
@@ -351,7 +344,7 @@ ej_input:
         sub r6,r6,#48           //Como vimos en clase al quitarle 48 al caracter ascii lo convertimos en un numero
         #mov r0,#'K'
         #bl write_uart
-        ldr r4, =buffer_int // Con r4 iremos rellenando el buffer del comando actual
+        ldr r4, =buffer_input // Con r4 iremos rellenando el buffer del comando actual
         mov r5,#0   // La posicion de la cadena es el 0
 
 bucle_intro:		
