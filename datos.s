@@ -31,6 +31,8 @@ cmd_input: .asciz "input"
 .global cmd_pause
 cmd_pause: .asciz "pause"
 
+.global mess_compro_completa
+mess_compro_completa: .asciz "Comprobacion completa, la variable no esta descrita y se va a guardar la nueva variable\n"
 .global mensaje_vars_int
 mensaje_vars_int: .asciz "Numero de variables enteras: "
 .global mensaje_pausa
@@ -44,6 +46,11 @@ mensaje_puntos_espacio:   .asciz ":   "
 .global error_limite_mem
 error_limite_mem:   .asciz "El nombre de la variable no puede superar los 11 caracteres"
 .align
+
+.global mess_variable_no_exis
+mess_variable_no_exis:   .asciz "La variable en cuestion no esta definida\n"
+.align
+
 
 .global registros_virtuales    // Algunas funciones en utils.s deben tener acceso
 registros_virtuales:
